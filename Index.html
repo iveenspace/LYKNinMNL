@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LYKN T-pop Photostrip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0a0a0a;
+            color: #fff;
+            background-image: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+            min-height: 100vh;
+        }
+        
+        .camera-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            background-color: #000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .photo-slot {
+            background-color: #111;
+            border: 2px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .photo-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            font-weight: 800;
+            color: white;
+            z-index: 10;
+            opacity: 0;
+            text-shadow: 0 0 20px rgba(255,255,255,0.7);
+        }
+        
+        .countdown.active {
+            opacity: 1;
+        }
+        
+        .flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            opacity: 0;
+            z-index: 5;
+        }
+        
+        .error-message {
+            background-color: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,0,0,0.3);
+        }
+        
+        .camera-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            z-index: 20;
+        }
+        
+        .photostrip-header {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .between-photos-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px 0;
+            gap: 15px;
+        }
+        
+        .image-placeholder {
+            background: linear-gradient(135deg, #111, #222);
+            border: 2px solid rgba(255,255,255,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .photostrip-container {
+            background-color: #0c0c0c;
+            background-image: linear-gradient(135deg, #0c0c0c, #181818);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .photostrip-footer {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .btn {
+            background-image: linear-gradient(135deg, #333, #222);
+            color: white;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .btn:hover:not(:disabled) {
+            background-image: linear-gradient(135deg, #444, #333);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+        
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background-image: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-image: linear-gradient(135deg, #4f8df9, #3573f0);
+        }
+        
+        .btn-secondary {
+            background-image: linear-gradient(135deg, #4b5563, #374151);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background-image: linear-gradient(135deg, #5b6675, #475163);
+        }
+        
+        .camera-btn {
+            background-color: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .camera-btn:hover:not(:disabled) {
+            background-color: rgba(0,0,0,0.8);
+            transform: scale(1.1);
+        }
+        
+        .camera-btn:active:not(:disabled) {
+            transform: scale(1);
+        }
+        
+        .lykn-text {
+            color: #9ca3af; /* Gray color */
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold mb-2"><span class="lykn-text">LYKN</span> UNLEASHED TOUR</h1>
+            <p class="text-gray-400">Manila Photostrip Experience</p>
+        </header>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Camera Section -->
+            <div>
+                <div class="camera-container aspect-video mb-5 relative">
+                    <video id="video" class="w-full h-full object-cover" autoplay playsinline></video>
+                    <div id="cameraError" class="error-message absolute inset-0 flex items-center justify-center hidden">
+                        <div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <p class="text-lg font-medium">Camera access required</p>
+                            <p class="text-sm text-gray-400 mt-2">Please allow camera access in your browser settings</p>
+                        </div>
+                    </div>
+                    <div class="camera-controls">
+                        <button id="switchCameraBtn" class="camera-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="countdown" id="countdown">3</div>
+                    <div class="flash" id="flash"></div>
+                </div>
+                
+                <div class="flex gap-4 justify-center">
+                    <button id="startBtn" class="btn btn-primary px-6 py-3">
+                        Start Photobooth
+                    </button>
+                    <button id="resetBtn" class="btn btn-secondary px-6 py-3" disabled>
+                        Reset
+                    </button>
+                </div>
+                
+                <!-- Between Photos Controls (initially hidden) -->
+                <div id="betweenPhotosControls" class="between-photos-controls mt-4 hidden">
+                    <button id="switchCameraBetweenBtn" class="btn btn-secondary flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Switch Camera
+                    </button>
+                    <button id="continueBtn" class="btn btn-primary">
+                        Continue
+                    </button>
+                </div>
+                
+                <div id="statusMessage" class="mt-4 text-center text-sm text-gray-400"></div>
+            </div>
+            
+            <!-- Photostrip Section -->
+            <div>
+                <div class="photostrip-container">
+                    <div class="photostrip-header text-center mb-5">
+                        <h2 class="text-2xl font-extrabold mb-1"><span class="lykn-text">LYKN</span></h2>
+                        <p class="text-xs text-gray-400 mb-4">UNLEASHED TOUR IN MANILA</p>
+                        
+                        <!-- LYKN Image -->
+                        <div class="image-placeholder h-40 mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <p class="text-sm font-medium text-gray-400">LYKN GROUP PHOTO</p>
+                        </div>
+                    </div>
+                    
+                    <div id="photoStripContainer" class="flex flex-col gap-4 mb-4">
+                        <!-- Photo slots will be generated here -->
+                    </div>
+                    
+                    <div class="photostrip-footer">
+                        <p class="text-xs text-gray-400">MEMORIES FROM THE CONCERT</p>
+                        <p class="text-[10px] text-gray-600 mt-1">© LYKN UNLEASHED TOUR 2025</p>
+                        <p class="text-[10px] text-gray-600 mt-2">iveen_space</p>
+                    </div>
+                </div>
+                
+                <div class="mt-5 text-center">
+                    <button id="downloadBtn" class="btn btn-primary px-6 py-3" disabled>
+                        Download Photostrip
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="canvas" class="hidden"></canvas>
+    <canvas id="photoStripCanvas" class="hidden"></canvas>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM elements
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const photoStripCanvas = document.getElementById('photoStripCanvas');
+            const photoStripContainer = document.getElementById('photoStripContainer');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const countdown = document.getElementById('countdown');
+            const flash = document.getElementById('flash');
+            const cameraError = document.getElementById('cameraError');
+            const statusMessage = document.getElementById('statusMessage');
+            const switchCameraBtn = document.getElementById('switchCameraBtn');
+            const betweenPhotosControls = document.getElementById('betweenPhotosControls');
+            const switchCameraBetweenBtn = document.getElementById('switchCameraBetweenBtn');
+            const continueBtn = document.getElementById('continueBtn');
+            
+            // Variables
+            let stream = null;
+            let photosTaken = 0;
+            let photoSlots = [];
+            let capturedPhotos = [];
+            let isCapturing = false;
+            let isPaused = false;
+            const photoCount = 3;
+            let currentFacingMode = 'user'; // Start with front camera
+            
+            // Initialize camera with better error handling
+            async function initCamera(facingMode = 'user') {
+                // Stop any existing stream
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                try {
+                    statusMessage.textContent = "Requesting camera access...";
+                    currentFacingMode = facingMode;
+                    
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: facingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }, 
+                        audio: false 
+                    });
+                    
+                    video.srcObject = stream;
+                    startBtn.disabled = false;
+                    statusMessage.textContent = `Camera ready (${facingMode === 'user' ? 'front' : 'back'})! Click 'Start Photobooth' to begin.`;
+                    cameraError.classList.add('hidden');
+                    switchCameraBtn.disabled = false;
+                    
+                } catch (err) {
+                    console.error('Camera error:', err);
+                    cameraError.classList.remove('hidden');
+                    statusMessage.textContent = `Error accessing ${facingMode === 'user' ? 'front' : 'back'} camera.`;
+                    
+                    // If one camera fails, try the other one
+                    if (facingMode === 'user') {
+                        statusMessage.textContent = "Front camera not available. Trying back camera...";
+                        setTimeout(() => {
+                            initCamera('environment');
+                        }, 1000);
+                    } else if (facingMode === 'environment') {
+                        statusMessage.textContent = "Back camera not available. Trying front camera...";
+                        setTimeout(() => {
+                            initCamera('user');
+                        }, 1000);
+                    } else {
+                        startBtn.disabled = true;
+                        switchCameraBtn.disabled = true;
+                    }
+                }
+            }
+            
+            // Switch camera function
+            async function switchCamera() {
+                const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                switchCameraBtn.disabled = true;
+                switchCameraBetweenBtn.disabled = true;
+                statusMessage.textContent = `Switching to ${newFacingMode === 'user' ? 'front' : 'back'} camera...`;
+                
+                try {
+                    await initCamera(newFacingMode);
+                    switchCameraBetweenBtn.disabled = false;
+                } catch (err) {
+                    console.error('Error switching camera:', err);
+                    statusMessage.textContent = `Failed to switch camera. Using ${currentFacingMode === 'user' ? 'front' : 'back'} camera.`;
+                    switchCameraBtn.disabled = false;
+                    switchCameraBetweenBtn.disabled = false;
+                }
+            }
+            
+            // Create photo slots with dynamic aspect ratio
+            function createPhotoSlots() {
+                photoStripContainer.innerHTML = '';
+                photoSlots = [];
+                capturedPhotos = [];
+                
+                for (let i = 0; i < photoCount; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'photo-slot mb-4';
+                    slot.style.height = '200px'; // Default height until we know the actual aspect ratio
+                    
+                    // Add placeholder content
+                    const placeholderContent = document.createElement('div');
+                    placeholderContent.className = 'flex flex-col items-center justify-center';
+                    placeholderContent.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span class="text-gray-500 font-medium">Photo ${i + 1}</span>
+                    `;
+                    slot.appendChild(placeholderContent);
+                    
+                    photoStripContainer.appendChild(slot);
+                    photoSlots.push(slot);
+                }
+            }
+            
+            // Take a photo with error handling
+            function takePhoto() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // Flash effect
+                        flash.style.opacity = '0.8';
+                        setTimeout(() => {
+                            flash.style.opacity = '0';
+                        }, 200);
+                        
+                        // Set canvas dimensions to match video dimensions
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 480;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        
+                        const imgData = canvas.toDataURL('image/jpeg');
+                        
+                        // Add to captured photos
+                        capturedPhotos.push({
+                            data: imgData,
+                            width: canvas.width,
+                            height: canvas.height
+                        });
+                        
+                        // Update photo slot with proper aspect ratio
+                        const aspectRatio = canvas.width / canvas.height;
+                        photoSlots[photosTaken].style.aspectRatio = aspectRatio;
+                        
+                        const img = document.createElement('img');
+                        img.src = imgData;
+                        photoSlots[photosTaken].innerHTML = '';
+                        photoSlots[photosTaken].appendChild(img);
+                        
+                        photosTaken++;
+                        resolve();
+                    } catch (err) {
+                        console.error('Error taking photo:', err);
+                        statusMessage.textContent = "Error capturing photo. Please try again.";
+                        reject(err);
+                    }
+                });
+            }
+            
+            // Start countdown
+            function startCountdown(seconds) {
+                return new Promise((resolve) => {
+                    countdown.textContent = seconds;
+                    countdown.classList.add('active');
+                    
+                    const interval = setInterval(() => {
+                        seconds--;
+                        countdown.textContent = seconds;
+                        
+                        if (seconds <= 0) {
+                            clearInterval(interval);
+                            countdown.classList.remove('active');
+                            resolve();
+                        }
+                    }, 1000);
+                });
+            }
+            
+            // Show between photos controls
+            function showBetweenPhotosControls() {
+                return new Promise((resolve) => {
+                    betweenPhotosControls.classList.remove('hidden');
+                    startBtn.classList.add('hidden');
+                    resetBtn.classList.add('hidden');
+                    isPaused = true;
+                    
+                    // Set up event listeners for one-time use
+                    const onSwitchCamera = async () => {
+                        await switchCamera();
+                    };
+                    
+                    const onContinue = () => {
+                        betweenPhotosControls.classList.add('hidden');
+                        startBtn.classList.remove('hidden');
+                        resetBtn.classList.remove('hidden');
+                        isPaused = false;
+                        
+                        // Remove event listeners
+                        switchCameraBetweenBtn.removeEventListener('click', onSwitchCamera);
+                        continueBtn.removeEventListener('click', onContinue);
+                        
+                        resolve();
+                    };
+                    
+                    switchCameraBetweenBtn.addEventListener('click', onSwitchCamera);
+                    continueBtn.addEventListener('click', onContinue);
+                    
+                    statusMessage.textContent = "Ready for next photo. Switch camera or continue.";
+                });
+            }
+            
+            // Start photobooth process
+            async function startPhotobooth() {
+                if (isCapturing) return;
+                
+                try {
+                    isCapturing = true;
+                    startBtn.disabled = true;
+                    switchCameraBtn.disabled = true;
+                    statusMessage.textContent = "Starting photobooth...";
+                    
+                    createPhotoSlots();
+                    photosTaken = 0;
+                    
+                    for (let i = 0; i < photoCount; i++) {
+                        statusMessage.textContent = `Taking photo ${i+1} of ${photoCount}...`;
+                        await startCountdown(3);
+                        await takePhoto();
+                        
+                        // Show between photos controls if not the last photo
+                        if (i < photoCount - 1) {
+                            await showBetweenPhotosControls();
+                        }
+                    }
+                    
+                    resetBtn.disabled = false;
+                    downloadBtn.disabled = false;
+                    switchCameraBtn.disabled = false;
+                    statusMessage.textContent = "All photos taken! You can download your photostrip.";
+                } catch (err) {
+                    console.error('Photobooth error:', err);
+                    statusMessage.textContent = "An error occurred. Please try again.";
+                    switchCameraBtn.disabled = false;
+                } finally {
+                    isCapturing = false;
+                }
+            }
+            
+            // Reset photobooth
+            function resetPhotobooth() {
+                photosTaken = 0;
+                capturedPhotos = [];
+                createPhotoSlots();
+                
+                startBtn.disabled = false;
+                resetBtn.disabled = true;
+                downloadBtn.disabled = true;
+                statusMessage.textContent = "Reset complete. Ready to take new photos.";
+            }
+            
+            // Draw LYKN image for the photostrip
+            function drawLYKNImage(ctx, x, y, width, height) {
+                // Background gradient
+                const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+                gradient.addColorStop(0, '#111');
+                gradient.addColorStop(1, '#222');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, width, height);
+                
+                // Border
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, width, height);
+                
+                // Icon
+                ctx.fillStyle = '#444';
+                ctx.beginPath();
+                ctx.arc(x + width/2, y + height/2, 25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x + width/2, y + height/2, 20, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Camera icon
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 1.5;
+                
+                // Camera body
+                ctx.beginPath();
+                ctx.roundRect(x + width/2 - 15, y + height/2 - 10, 30, 20, 3);
+                ctx.stroke();
+                
+                // Camera lens
+                ctx.beginPath();
+                ctx.arc(x + width/2, y + height/2, 6, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Camera flash
+                ctx.beginPath();
+                ctx.rect(x + width/2 + 8, y + height/2 - 15, 6, 4);
+                ctx.stroke();
+            }
+            
+            // Generate and download photostrip
+            function downloadPhotostrip() {
+                if (capturedPhotos.length === 0) {
+                    statusMessage.textContent = "No photos to download.";
+                    return;
+                }
+                
+                try {
+                    statusMessage.textContent = "Generating photostrip...";
+                    
+                    // Calculate dimensions for the photostrip
+                    const stripWidth = 800;
+                    const padding = 20;
+                    const headerHeight = 200; // For LYKN image
+                    const footerHeight = 100; // Increased for additional text
+                    const photoPadding = 20; // Space between photos
+                    
+                    // Calculate total height based on actual photo dimensions
+                    let totalPhotoHeight = 0;
+                    capturedPhotos.forEach(photo => {
+                        const aspectRatio = photo.width / photo.height;
+                        const photoWidth = stripWidth - (padding * 2);
+                        const photoHeight = photoWidth / aspectRatio;
+                        totalPhotoHeight += photoHeight + photoPadding;
+                    });
+                    
+                    // Subtract the last padding and add header/footer
+                    const totalHeight = headerHeight + totalPhotoHeight - photoPadding + footerHeight;
+                    
+                    photoStripCanvas.width = stripWidth;
+                    photoStripCanvas.height = totalHeight;
+                    
+                    const ctx = photoStripCanvas.getContext('2d');
+                    
+                    // Fill background with gradient
+                    const bgGradient = ctx.createLinearGradient(0, 0, 0, photoStripCanvas.height);
+                    bgGradient.addColorStop(0, '#0c0c0c');
+                    bgGradient.addColorStop(1, '#181818');
+                    ctx.fillStyle = bgGradient;
+                    ctx.fillRect(0, 0, photoStripCanvas.width, photoStripCanvas.height);
+                    
+                    // Draw header with gray LYKN text
+                    ctx.font = 'bold 48px Montserrat, sans-serif';
+                    ctx.textAlign = 'center';
+                    
+                    // Use gray color for LYKN text
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.fillText('LYKN', stripWidth / 2, 50);
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 18px Montserrat, sans-serif';
+                    ctx.fillText('UNLEASHED TOUR IN MANILA', stripWidth / 2, 80);
+                    
+                    // Draw LYKN image
+                    drawLYKNImage(ctx, padding, 100, stripWidth - (padding * 2), 80);
+                    
+                    // Draw divider
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(20, headerHeight - 10);
+                    ctx.lineTo(stripWidth - 20, headerHeight - 10);
+                    ctx.stroke();
+                    
+                    // Draw photos
+                    let yPos = headerHeight;
+                    
+                    const drawNextPhoto = (index) => {
+                        if (index >= capturedPhotos.length) {
+                            // Draw footer divider
+                            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(20, yPos + 10);
+                            ctx.lineTo(stripWidth - 20, yPos + 10);
+                            ctx.stroke();
+                            
+                            // Draw footer
+                            ctx.fillStyle = '#aaaaaa';
+                            ctx.font = '16px Montserrat, sans-serif';
+                            ctx.fillText('MEMORIES FROM THE CONCERT', stripWidth / 2, photoStripCanvas.height - 60);
+                            
+                            ctx.fillStyle = '#666666';
+                            ctx.font = '12px Montserrat, sans-serif';
+                            ctx.fillText('© LYKN UNLEASHED TOUR 2025', stripWidth / 2, photoStripCanvas.height - 40);
+                            
+                            // Add iveen_space at the very bottom
+                            ctx.fillStyle = '#666666';
+                            ctx.font = '12px Montserrat, sans-serif';
+                            ctx.fillText('iveen_space', stripWidth / 2, photoStripCanvas.height - 20);
+                            
+                            // Create download link
+                            const link = document.createElement('a');
+                            link.download = 'lykn_photostrip.jpg';
+                            link.href = photoStripCanvas.toDataURL('image/jpeg', 0.9);
+                            link.click();
+                            
+                            statusMessage.textContent = "Photostrip downloaded!";
+                            return;
+                        }
+                        
+                        const img = new Image();
+                        img.onload = () => {
+                            // Calculate dimensions for this specific photo
+                            const aspectRatio = capturedPhotos[index].width / capturedPhotos[index].height;
+                            const photoWidth = stripWidth - (padding * 2);
+                            const photoHeight = photoWidth / aspectRatio;
+                            
+                            // Draw photo background
+                            ctx.fillStyle = '#111';
+                            ctx.fillRect(padding, yPos, photoWidth, photoHeight);
+                            
+                            // Draw the image maintaining aspect ratio
+                            ctx.drawImage(img, padding, yPos, photoWidth, photoHeight);
+                            
+                            // Add border
+                            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(padding, yPos, photoWidth, photoHeight);
+                            
+                            // Update position for next photo
+                            yPos += photoHeight + photoPadding;
+                            
+                            // Process next photo
+                            drawNextPhoto(index + 1);
+                        };
+                        
+                        img.onerror = () => {
+                            console.error('Error loading image:', index);
+                            statusMessage.textContent = "Error creating photostrip. Please try again.";
+                        };
+                        
+                        img.src = capturedPhotos[index].data;
+                    };
+                    
+                    // Start drawing photos
+                    drawNextPhoto(0);
+                    
+                } catch (err) {
+                    console.error('Download error:', err);
+                    statusMessage.textContent = "Error generating photostrip.";
+                }
+            }
+            
+            // Event listeners
+            startBtn.addEventListener('click', startPhotobooth);
+            resetBtn.addEventListener('click', resetPhotobooth);
+            downloadBtn.addEventListener('click', downloadPhotostrip);
+            switchCameraBtn.addEventListener('click', switchCamera);
+            
+            // Initialize
+            createPhotoSlots();
+            
+            // Check if getUserMedia is supported
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                cameraError.classList.remove('hidden');
+                statusMessage.textContent = "Camera not supported in this browser.";
+                startBtn.disabled = true;
+                switchCameraBtn.disabled = true;
+            } else {
+                initCamera('user'); // Start with front camera by default
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964c3268b617ba08',t:'MTc1MzQ1MjE2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
